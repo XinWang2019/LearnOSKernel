@@ -13,3 +13,7 @@
 `vstart=xxxx`用于将当前section的虚拟起始地址制定为`xxxx`. 此时`$`的值是以`xxxx`为起始地址的顺延. 使用了`v_start`关键字后, 可以使用`section.节名.start`来获取本section在文件中的真实偏移.
 
 NASM基本用法: `nasm -f <format> <filename> [-o <output>]`.
+
+插入MBR到硬盘文件:
+`dd if=mbr.bin of=hd60M.img bs=512 count=1 conv=notrunc`
+`dd if=loader.bin of=hd60M.img bs=512 count=4 seek=2 conv=notrunc`
