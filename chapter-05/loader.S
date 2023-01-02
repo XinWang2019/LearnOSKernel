@@ -1,6 +1,10 @@
 %include "boot.inc"
 section loader vstart=LOADER_BASE_ADDR
 LOADER_STACK_TOP equ LOADER_BASE_ADDR
+; 定义段选择子
+SELECTOR_CODE  equ (0x0001<<3) + TI_GDT + RPL0 ;    代码段段选择子
+SELECTOR_DATA  equ (0x0002<<3) + TI_GDT + RPL0 ;    数据段段选择子
+SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0 ;    显存段段选择子
 
 ; 构建GDT及其内部的描述符
     GDT_BASE: dd 0x0000_0000
@@ -34,6 +38,9 @@ LOADER_STACK_TOP equ LOADER_BASE_ADDR
     ards_nr dw 0                                 ; 用于记录ARDS (Address Range Descriptor Structure) 结构体数量
 
 loader_start:
+;--------------------------------------------------------------------------------------------------
+; 获取内存分布
+;--------------------------------------------------------------------------------------------------
 ; int 15h eax=0000E820, edx = 534D4150h ('SMAP') 获取内存布局 -------------------------------------------
     xor ebx, ebx             ; 将ebx清零
     mov edx, 0x534d4150      ; edx只赋值一次, 循环体中不会改变
@@ -106,10 +113,7 @@ loader_start:
     shl edx, 16
     or edx, eax
     add edx, 0x10_0000
-
-.mem_get_ok:
-    mov [total_mem_bytes], edx ; 将内存转换为byte后存入total_mem_bytes处
-    jmp .final
+    jmp .mem_get_ok
 
 .error_hlt:
     mov byte [gs:160], 'f'
@@ -120,11 +124,121 @@ loader_start:
     mov byte [gs:170], 'd'
     jmp $
 
-.final:
-    mov byte [gs:160], 'd'
-    mov byte [gs:162], 'o'
-    mov byte [gs:164], 'n'
-    mov byte [gs:166], 'e'
+.mem_get_ok:
+    mov [total_mem_bytes], edx ; 将内存转换为byte后存入total_mem_bytes处
+
+;--------------------------------------------------------------------------------------------------
+; 进入保护模式
+;--------------------------------------------------------------------------------------------------
+;- 打开A20 --------------------------------------------------
+    in al, 0x92
+    or al, 0000_0010B
+    out 0x92, al
+
+;- 加载GDT --------------------------------------------------
+    lgdt [gdt_ptr]
+
+;- 开启保护模式 -------------------------------------------------
+    mov eax, cr0
+    or eax, 0x0000_0001
+    mov cr0, eax
+
+    jmp dword SELECTOR_CODE:p_mode_start
+
+[bits 32]
+p_mode_start:
+    mov ax, SELECTOR_DATA
+    mov ds, ax
+    mov es, ax
+    mov ss, ax
+    mov esp, LOADER_STACK_TOP
+    mov ax, SELECTOR_VIDEO
+    mov gs, ax
+
+    mov byte [gs:160], 'P'
+;--------------------------------------------------------------------------------------------------
+; 开启内存分页
+;--------------------------------------------------------------------------------------------------
+; 创建页目录及页表并初始化也内存位图
+    call setup_page
+
+; 将描述符表地址及偏移量写入内存gdt_ptr, 一会儿用新地址重新加载
+    sgdt [gdt_ptr]
+
+; 将gdt描述符中视频段描述符中的段基址+0xc000_0000
+    mov ebx, [gdt_ptr + 2]
+    or dword [ebx + 0x18 + 4], 0xc000_0000
+
+; 将gdt的基址加上0xc000_0000使其成为内核所在的高地址
+    add dword [gdt_ptr + 2], 0xc000_0000
+
+; 将栈指针同样映射到内核地址
+    add esp, 0xc000_0000
+
+; 把页目录地址赋予cr3
+    mov eax, PAGE_DIR_TABLE_POS
+    mov cr3, eax
+
+; 打开cr0的pg位, 第31位
+    mov eax, cr0
+    or eax, 0x8000_0000
+    mov cr0, eax
+
+; 在开启分页后, 用gdt新的地址重新加载
+    lgdt [gdt_ptr]
+
+    mov byte [gs:160], 'V'
+
     jmp $
+
+; 创建页目录和页表 -----------------------------------------------------------------------------------
+setup_page:
+; 先吧页目录项逐字节清0
+    mov ecx, 4096
+    mov esi, 0
+.clear_page_dir:
+mov byte [PAGE_DIR_TABLE_POS + esi], 0
+inc esi
+loop .clear_page_dir
+
+; 开始创建页目录项 (PDE)
+.create_pde:
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x1000                                        ; 此时eax为第0个页表的位置
+    mov ebx, eax                                           ; 为.create_pte做准备, ebx为基址
+
+; 下面将页目录项0和0xc00都存为第一个页表的地址, 每个页表表示4MB内存
+; 这样, 0xc03f_ffff以下的地址和0x003f_ffff以下的地址都指向相同的页表
+; 这是为将地址映射为内核地址做准备
+    or eax, PG_US_U | PG_RW_W | PG_P                       ; 所有特权级都可以访问
+    mov [PAGE_DIR_TABLE_POS + 0x0], eax                    ; 首个页目录项指向首个页表的地址0x10_1000
+    mov [PAGE_DIR_TABLE_POS + 0xc00], eax                  ; 第768个页目录项
+    sub eax, 0x1000                                        ; eax指向页目录表
+    mov [PAGE_DIR_TABLE_POS + 4092], eax                   ; 最后一个页目录项指向页目录表自身
+
+; 下面创建首个页表的页表项:
+    mov ecx, 256                                           ; 为1MB低端内存的256个页表项填充
+    mov esi, 0
+    mov edx, PG_US_U | PG_RW_W | PG_P
+.create_pte:
+    mov [ebx+esi*4], edx
+    add edx, 4096
+    inc esi
+    loop .create_pte
+
+; 创建内核其他页表的PDE
+    mov eax, PAGE_DIR_TABLE_POS
+    add eax, 0x2000                                        ; 此时eax为第二个页表的位置
+    or eax, PG_US_U | PG_RW_W | PG_P
+    mov ebx, PAGE_DIR_TABLE_POS
+    mov ecx, 254                                           ; 范围为第769~1022的所有目录项数量
+    mov esi, 769
+.create_kernel_pde:
+    mov [ebx+esi*4], eax
+    inc esi
+    add eax, 0x1000
+    loop .create_kernel_pde
+    ret
+
 
     
