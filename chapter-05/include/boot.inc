@@ -4,6 +4,10 @@ LOADER_BASE_ADDR equ 0x900
 LOADER_START_SECTOR equ 0x2
 PAGE_DIR_TABLE_POS equ 0x10_0000
 
+KERNEL_START_SECTOR equ 0x9
+KERNEL_BIN_BASE_ADDR equ 0x7_0000
+KERNEL_ENTRY_POINT equ 0xc000_1500
+
 ; GDT描述符属性 --------------------------------------------------------------------
 DESC_G_4K equ         1000_0000_0000_0000_0000_0000b ; G, 段界限粒度为4KB
 DESC_D_32 equ          100_0000_0000_0000_0000_0000b ; D/B, 用于代码段, 表示命令中操作数和有效地址为32位, 使用EIP寄存器
@@ -52,3 +56,7 @@ PG_RW_R equ 00b
 PG_RW_W equ 10b
 PG_US_S equ 000b
 PG_US_U equ 100b
+
+; elf文件中program header的p_type字段取值 ----------------------------------------------------------------
+PT_NULL equ 0
+PT_LOAD equ 1

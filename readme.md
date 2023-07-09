@@ -17,3 +17,18 @@ NASM基本用法: `nasm -f <format> <filename> [-o <output>]`.
 插入MBR到硬盘文件:
 `dd if=mbr.bin of=hd60M.img bs=512 count=1 conv=notrunc`
 `dd if=loader.bin of=hd60M.img bs=512 count=4 seek=2 conv=notrunc`
+
+gcc编译器将代码编译到32位80386平台选项: `-m32`
+ld连接器将目标文件按照32位80386平台链接: `-m elf_i386`
+
+## 第四章
+段选择子结构:
+* \[1:0\]: RPL
+* \[2\]: TI
+* \[15:3\]: 描述符索引值
+
+## 第五章
+硬盘布局:
+* MBR: 第1扇区
+* Loader: 第2扇区
+* kernel: 第9扇区
