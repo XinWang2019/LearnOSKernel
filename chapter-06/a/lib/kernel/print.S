@@ -4,6 +4,29 @@ SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0
 
 [bits 32]
 section .text
+; put_str ------------------------------------------------
+; 功能描述: 通过调用put_char来打印以0结尾的字符串
+;----------------------------------------------------------
+global put_str
+put_str:
+; 本函数只用了ebx和ecx, 因此只备份这两个寄存器
+    push ebx
+    push ecx
+    xor ecx, ecx
+    mov ebx, [esp + 12]      ; 从栈中得到待打印的字符串地址
+.goon:
+    mov cl, [ebx]
+    cmp cl, 0                ; 如果处理到了字符串尾, 跳到结束处返回
+    jz .str_over
+    push ecx
+    call put_char
+    add esp, 4               ; 回收参数所占的栈空间
+    inc ebx                  ; 使ebx指向下一个字符
+    jmp .goon
+.str_over:
+    pop ecx
+    pop ebx
+    ret
 ; put_char ------------------------------------------------
 ; 功能描述: 把栈中的1个字符写入光标所在处
 ;----------------------------------------------------------
