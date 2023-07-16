@@ -2,8 +2,73 @@ TI_GDT equ 0
 RPL0 equ 0
 SELECTOR_VIDEO equ (0x0003<<3) + TI_GDT + RPL0
 
+section .data
+put_int_buffer dq 0          ; 定义8字节缓冲区用于数字到字符的转换
+
 [bits 32]
 section .text
+; put_int -------------------------------------------------
+; 功能描述: 将小端字节序的数字变成对应的ASCII后, 倒置
+
+; 输入: 栈中参数为待打印的数字
+
+; 输出: 在屏幕上打印十六进制数字, 并不会打印前缀0x
+; 如打印十进制15, 只会打印f, 不会是0xf
+global put_int
+put_int:
+    pushad
+    mov ebp, esp
+    mov eax, [ebp+4*9]
+    mov edx, eax
+    mov edi, 7               ; 指定在put_int_buffer中初始的偏移量
+    mov ecx, 8               ; 32位数字中, 十六进制数字的位数是8个
+    mov ebx, put_int_buffer
+; 将32位数字按照16进制的形式从低到高逐个处理, 共处理8个十六进制数字
+.16based_4bits:
+    and edx, 0x0000_000F
+    cmp edx, 9
+    jg .is_A2F
+    add edx, '0'
+    jmp .store
+.is_A2F:
+    sub edx, 10
+    add edx, 'A'
+
+.store:
+    mov [ebx+edi], dl
+    dec edi
+    shr eax, 4
+    mov edx, eax
+    loop .16based_4bits
+
+; 现在put_int_buffer中已全部是字符, 打印之前把高位的连续'0'去掉
+; 例如 000123变成123
+ready_to_print:
+    inc edi                  ; 此时edi=-1, 加1使其为0
+.skip_prefix_0:
+    cmp edi, 8               ; 若已经比较第9个字符
+    je .full0
+; 找出连续的0字符, edi作为非0的最高位字符的偏移
+.go_on_skip:
+    mov cl, [put_int_buffer+edi]
+    inc edi
+    cmp cl, '0'
+    je .skip_prefix_0
+    dec edi                  ; edi在上面的inc操作中指向了下一个字符, 若当前字符不为'0', 要使edi减1恢复指向当前字符
+    jmp .put_each_num
+
+.full0:
+    mov cl, '0'              ; 输入的数字全0时, 则只打印0
+.put_each_num:
+    push ecx
+    call put_char
+    add esp, 4
+    inc edi
+    mov cl, [put_int_buffer+edi] ; 获取下一个字符到cl寄存器
+    cmp edi, 8
+    jl .put_each_num
+    popad
+    ret
 ; put_str ------------------------------------------------
 ; 功能描述: 通过调用put_char来打印以0结尾的字符串
 ;----------------------------------------------------------
