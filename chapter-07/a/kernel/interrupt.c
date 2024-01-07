@@ -10,7 +10,7 @@
 #define PIC_S_DATA 0xa1                                    // 从片的数据端口是0xa1
 
 
-#define IDT_DESC_CNT 0x21                                  // 目前总共支持的中断数
+#define IDT_DESC_CNT 0x31                                  // 目前总共支持的中断数
 
 /* 中断门描述符结构体 */
 struct gate_desc {
@@ -73,9 +73,16 @@ static void general_intr_handler(uint8_t vec_nr) {
     if (vec_nr == 0x27 || vec_nr == 0x2f) { // IRQ7和IRQ15会产生伪中断(spurious interrupt), 无需处理, 0x2f是从片上的最后一个IRQ引脚, 保留项
         return;
     }
+
     put_str("int vector: 0x");
     put_int(vec_nr);
+    put_char(' ');
+    put_str(intr_name[vec_nr]);
     put_char('\n');
+
+    if (vec_nr != 0x20) {
+        while(1);
+    }
 }
 
 /* 完成一般中断处理函数注册及异常名称注册 */

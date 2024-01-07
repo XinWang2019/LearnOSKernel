@@ -15,8 +15,9 @@ mkdir -p build/lib/kernel/
 nasm -f elf -o build/lib/kernel/print.o a/lib/kernel/print.S
 nasm -f elf -o build/kernel.o a/kernel/kernel.S
 gcc -I a/lib/kernel/ -I a/kernel -m32 -c -fno-builtin -fno-stack-protector -o build/interrupt.o a/kernel/interrupt.c
+gcc -I a/lib/kernel/ -I a/kernel -m32 -c -fno-builtin -fno-stack-protector -o build/timer.o a/device/timer.c
 gcc -I a/lib/kernel/ -I a/kernel -m32 -c -fno-builtin -o build/init.o a/kernel/init.c
-gcc -I a/lib/kernel -m32 -c -fno-builtin -o build/lib/kernel/main.o a/kernel/main.c && ld -m elf_i386 build/lib/kernel/main.o build/lib/kernel/print.o build/init.o build/interrupt.o build/kernel.o -Ttext 0xc0001500 -e main -o build/kernel.bin 
+gcc -I a/lib/kernel -m32 -c -fno-builtin -o build/lib/kernel/main.o a/kernel/main.c && ld -m elf_i386 build/lib/kernel/main.o build/lib/kernel/print.o build/init.o build/interrupt.o build/kernel.o build/timer.o -Ttext 0xc0001500 -e main -o build/kernel.bin 
 
 echo "Start updating MBR, loader and kernel into the virtual hard disk..."
 # 更新硬盘内容
