@@ -10,7 +10,8 @@ CFLAGS = -Wall $(LIB) -c -fno-builtin -W -Wstrict-prototypes \
 LDFLAGS = -Ttext $(ENTRY_POINT) -e main -m elf_i386 -Map $(BUILD_DIR)/kernel.map
 OBJS = $(BUILD_DIR)/main.o $(BUILD_DIR)/init.o $(BUILD_DIR)/interrupt.o \
        $(BUILD_DIR)/timer.o $(BUILD_DIR)/kernel.o $(BUILD_DIR)/print.o \
-	   $(BUILD_DIR)/debug.o
+	   $(BUILD_DIR)/debug.o $(BUILD_DIR)/memory.o $(BUILD_DIR)/bitmap.o \
+	   $(BUILD_DIR)/string.o
 
 ######### c代码编译 ###############################################################
 $(BUILD_DIR)/main.o : kernel/main.c lib/kernel/print.h \
@@ -31,8 +32,17 @@ $(BUILD_DIR)/timer.o: device/timer.c device/timer.h lib/stdint.h \
 
 $(BUILD_DIR)/debug.o: kernel/debug.c kernel/debug.h \
 		lib/kernel/io.h lib/kernel/print.h
-		 $(CC) $(CFLAGS) $< -o $@
+		$(CC) $(CFLAGS) $< -o $@
 
+$(BUILD_DIR)/string.o: lib/string.c lib/string.h
+		$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/bitmap.o: lib/kernel/bitmap.c lib/kernel/bitmap.h
+		$(CC) $(CFLAGS) $< -o $@
+
+$(BUILD_DIR)/memory.o: lib/kernel/memory.c lib/kernel/memory.h \
+		lib/stdint.h lib/kernel/print.h
+		$(CC) $(CFLAGS) $< -o $@
 ######### 汇编代码编译 #############################################################
 $(BUILD_DIR)/kernel.o: kernel/kernel.S
 		$(AS) $(ASFLAGS) $< -o $@
