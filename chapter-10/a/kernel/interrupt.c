@@ -10,7 +10,7 @@
 #define PIC_S_DATA 0xa1                                    // 从片的数据端口是0xa1
 
 
-#define IDT_DESC_CNT 0x31                                  // 目前总共支持的中断数
+#define IDT_DESC_CNT 0x30                                  // 目前总共支持的中断数
 #define EFLAGS_IF 0x00000200                               // eflags寄存器中的if位为1
 #define GET_EFLAGS(EFLAGS_VAR) asm volatile("pushfl; popl %0" : "=g" (EFLAGS_VAR))
 
@@ -26,7 +26,7 @@ struct gate_desc {
 // 静态函数声明, 非必须
 static void make_idt_desc(struct gate_desc* p_gdesc, uint8_t attr, intr_handler function);
 static struct gate_desc idt[IDT_DESC_CNT]; // 中断描述符表
-char* intr_name[IDT_DESC_CNT];
+char* intr_name[IDT_DESC_CNT]; // 用于保存异常的名字
 intr_handler idt_table[IDT_DESC_CNT]; // 定义中断处理程序数组, 在kernel.S中定义的intrXXentry只是中断处理程序的入口, 最终调用的是idt_table中的处理程序
 extern intr_handler intr_entry_table[IDT_DESC_CNT]; // 声明引用定义在kernel.S中的中断处理函数入口数组
 
@@ -45,8 +45,8 @@ static void pic_init(void) {
     outb(PIC_S_DATA, 0x02); // ICW3: 设置从片连接到主片的IR2引脚
     outb(PIC_S_DATA, 0x01); // ICW4: 8086模式, 正常EOI
 
-    /* 打开ia主片上IR0, 也就是目前只接受时钟产生的中断 */
-    outb(PIC_M_DATA, 0xfe);
+    /* 测试键盘，只打开键盘中断，其他全部关闭 */
+    outb(PIC_M_DATA, 0xfd);
     outb(PIC_S_DATA, 0xff);
 
     put_str(" pic_init done\n");
