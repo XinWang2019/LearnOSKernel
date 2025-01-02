@@ -22,7 +22,7 @@ bool ioq_full(struct ioqueue* ioq) {
 }
 
 /* 判断队列是否已空 */
-static bool ioq_empty(struct ioqueue* ioq) {
+bool ioq_empty(struct ioqueue* ioq) {
     ASSERT(intr_get_status() == INTR_OFF);
     return (ioq->head == ioq->tail);
 }
@@ -53,7 +53,7 @@ char ioq_getchar(struct ioqueue* ioq) {
         ioq_wait(&ioq->producer);
         lock_release(&ioq->lock);
     }
-    char byte = ioq->buf[ioq->head]; // 从缓冲区中取出
+    char byte = ioq->buf[ioq->tail]; // 从缓冲区中取出
     ioq->tail = next_pos(ioq->tail); // 把读游标移到下一位置
 
     if (ioq->producer != NULL) {
