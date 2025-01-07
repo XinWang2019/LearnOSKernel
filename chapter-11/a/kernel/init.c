@@ -6,6 +6,7 @@
 #include "thread.h"
 #include "../device/console.h"
 #include "../device/keyboard.h"
+#include "../userprog/tss.h"
 
 /* 负责初始化所有模块 */
 void init_all() {
@@ -16,4 +17,5 @@ void init_all() {
     timer_init(); // 初始化PIT
     keyboard_init();
     console_init(); // 控制台初始化最好放在开中断之前
+    tss_init();
 }

@@ -3,6 +3,8 @@
 #include "stdint.h"
 #include "list.h"
 
+#define PG_SIZE 4096
+
 /* 自定义通用函数类型, 它将在很多线程函数中作为形参类型 */
 typedef void thread_func(void *);
 

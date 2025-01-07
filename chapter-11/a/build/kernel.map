@@ -95,6 +95,14 @@ Discarded input sections
                 0x0000000000000000        0x4 build/ioqueue.o
  .note.GNU-stack
                 0x0000000000000000        0x0 build/ioqueue.o
+ .group         0x0000000000000000        0x8 build/tss.o
+ .group         0x0000000000000000        0x8 build/tss.o
+ .text.__x86.get_pc_thunk.ax
+                0x0000000000000000        0x4 build/tss.o
+ .text.__x86.get_pc_thunk.bx
+                0x0000000000000000        0x4 build/tss.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 build/tss.o
 
 Memory Configuration
 
@@ -121,6 +129,7 @@ LOAD build/console.o
 LOAD build/sync.o
 LOAD build/keyboard.o
 LOAD build/ioqueue.o
+LOAD build/tss.o
                 [!provide]                        PROVIDE (__executable_start = SEGMENT_START ("text-segment", 0x8048000))
                 0x00000000080480d4                . = (SEGMENT_START ("text-segment", 0x8048000) + SIZEOF_HEADERS)
 
@@ -192,7 +201,7 @@ LOAD build/ioqueue.o
 .plt.sec
  *(.plt.sec)
 
-.text           0x00000000c0001500     0x315d
+.text           0x00000000c0001500     0x3311
  *(.text.unlikely .text.*_unlikely .text.unlikely.*)
  *(.text.exit .text.exit.*)
  *(.text.startup .text.startup.*)
@@ -206,21 +215,21 @@ LOAD build/ioqueue.o
  .text.__x86.get_pc_thunk.bx
                 0x00000000c000166e        0x4 build/main.o
                 0x00000000c000166e                __x86.get_pc_thunk.bx
- .text          0x00000000c0001672       0x48 build/init.o
+ .text          0x00000000c0001672       0x4d build/init.o
                 0x00000000c0001672                init_all
- .text          0x00000000c00016ba      0x4f4 build/interrupt.o
-                0x00000000c0001a6a                intr_enable
-                0x00000000c0001a9d                intr_disable
-                0x00000000c0001ad0                register_handler
-                0x00000000c0001af7                intr_set_status
-                0x00000000c0001b1f                intr_get_status
-                0x00000000c0001b46                idt_init
+ .text          0x00000000c00016bf      0x4f4 build/interrupt.o
+                0x00000000c0001a6f                intr_enable
+                0x00000000c0001aa2                intr_disable
+                0x00000000c0001ad5                register_handler
+                0x00000000c0001afc                intr_set_status
+                0x00000000c0001b24                intr_get_status
+                0x00000000c0001b4b                idt_init
  .text.__x86.get_pc_thunk.ax
-                0x00000000c0001bae        0x4 build/interrupt.o
-                0x00000000c0001bae                __x86.get_pc_thunk.ax
- .text          0x00000000c0001bb2      0x1b6 build/timer.o
-                0x00000000c0001d00                timer_init
- *fill*         0x00000000c0001d68        0x8 
+                0x00000000c0001bb3        0x4 build/interrupt.o
+                0x00000000c0001bb3                __x86.get_pc_thunk.ax
+ .text          0x00000000c0001bb7      0x1b6 build/timer.o
+                0x00000000c0001d05                timer_init
+ *fill*         0x00000000c0001d6d        0x3 
  .text          0x00000000c0001d70      0x541 build/kernel.o
                 0x00000000c0001d70                intr_exit
  *fill*         0x00000000c00022b1        0xf 
@@ -300,6 +309,9 @@ LOAD build/ioqueue.o
                 0x00000000c00043b8                ioq_empty
                 0x00000000c00044c2                ioq_getchar
                 0x00000000c000458e                ioq_putchar
+ .text          0x00000000c000465d      0x1b4 build/tss.o
+                0x00000000c000465d                update_tss_esp
+                0x00000000c00046f0                tss_init
  *(.gnu.warning)
 
 .fini
@@ -310,7 +322,7 @@ LOAD build/ioqueue.o
                 0x00000000c0005000                . = ALIGN (CONSTANT (MAXPAGESIZE))
                 0x00000000c0005000                . = SEGMENT_START ("rodata-segment", (ALIGN (CONSTANT (MAXPAGESIZE)) + (. & (CONSTANT (MAXPAGESIZE) - 0x1))))
 
-.rodata         0x00000000c0005000      0xab8
+.rodata         0x00000000c0005000      0xadf
  *(.rodata .rodata.* .gnu.linkonce.r.*)
  .rodata        0x00000000c0005000       0x2b build/main.o
  .rodata        0x00000000c000502b        0xa build/init.o
@@ -330,6 +342,7 @@ LOAD build/ioqueue.o
  .rodata        0x00000000c00059d9       0x36 build/keyboard.o
  *fill*         0x00000000c0005a0f        0x1 
  .rodata        0x00000000c0005a10       0xa8 build/ioqueue.o
+ .rodata        0x00000000c0005ab8       0x27 build/tss.o
 
 .rodata1
  *(.rodata1)
@@ -338,35 +351,37 @@ LOAD build/ioqueue.o
  *(.eh_frame_hdr)
  *(.eh_frame_entry .eh_frame_entry.*)
 
-.eh_frame       0x00000000c0005ab8      0xc2c
+.eh_frame       0x00000000c0005ae0      0xc98
  *(.eh_frame)
- .eh_frame      0x00000000c0005ab8       0x8c build/main.o
- .eh_frame      0x00000000c0005b44       0x24 build/init.o
+ .eh_frame      0x00000000c0005ae0       0x8c build/main.o
+ .eh_frame      0x00000000c0005b6c       0x24 build/init.o
                                          0x50 (size before relaxing)
- .eh_frame      0x00000000c0005b68      0x1a4 build/interrupt.o
+ .eh_frame      0x00000000c0005b90      0x1a4 build/interrupt.o
                                         0x1d0 (size before relaxing)
- .eh_frame      0x00000000c0005d0c       0x94 build/timer.o
+ .eh_frame      0x00000000c0005d34       0x94 build/timer.o
                                          0xd4 (size before relaxing)
- .eh_frame      0x00000000c0005da0       0x1c build/debug.o
+ .eh_frame      0x00000000c0005dc8       0x1c build/debug.o
                                          0x48 (size before relaxing)
- .eh_frame      0x00000000c0005dbc      0x13c build/memory.o
+ .eh_frame      0x00000000c0005de4      0x13c build/memory.o
                                         0x17c (size before relaxing)
- .eh_frame      0x00000000c0005ef8       0x90 build/bitmap.o
+ .eh_frame      0x00000000c0005f20       0x90 build/bitmap.o
                                          0xbc (size before relaxing)
- .eh_frame      0x00000000c0005f88      0x168 build/string.o
+ .eh_frame      0x00000000c0005fb0      0x168 build/string.o
                                         0x194 (size before relaxing)
- .eh_frame      0x00000000c00060f0      0x174 build/thread.o
+ .eh_frame      0x00000000c0006118      0x174 build/thread.o
                                         0x1b4 (size before relaxing)
- .eh_frame      0x00000000c0006264      0x148 build/list.o
+ .eh_frame      0x00000000c000628c      0x148 build/list.o
                                         0x188 (size before relaxing)
- .eh_frame      0x00000000c00063ac       0xd8 build/console.o
+ .eh_frame      0x00000000c00063d4       0xd8 build/console.o
                                         0x118 (size before relaxing)
- .eh_frame      0x00000000c0006484       0xdc build/sync.o
+ .eh_frame      0x00000000c00064ac       0xdc build/sync.o
                                         0x11c (size before relaxing)
- .eh_frame      0x00000000c0006560       0x68 build/keyboard.o
+ .eh_frame      0x00000000c0006588       0x68 build/keyboard.o
                                          0xa8 (size before relaxing)
- .eh_frame      0x00000000c00065c8      0x11c build/ioqueue.o
+ .eh_frame      0x00000000c00065f0      0x11c build/ioqueue.o
                                         0x15c (size before relaxing)
+ .eh_frame      0x00000000c000670c       0x6c build/tss.o
+                                         0xac (size before relaxing)
  *(.eh_frame.*)
 
 .gcc_except_table
@@ -474,6 +489,7 @@ LOAD build/ioqueue.o
  *fill*         0x00000000c00080e8       0x18 
  .data          0x00000000c0008100       0x76 build/keyboard.o
  .data          0x00000000c0008176        0x0 build/ioqueue.o
+ .data          0x00000000c0008176        0x0 build/tss.o
 
 .data1
  *(.data1)
@@ -482,7 +498,7 @@ LOAD build/ioqueue.o
                 0x00000000c0008176                . = .
                 0x00000000c0008176                __bss_start = .
 
-.bss            0x00000000c0008180      0x400
+.bss            0x00000000c0008180      0x46c
  *(.dynbss)
  *(.bss .bss.* .gnu.linkonce.b.*)
  .bss           0x00000000c0008180        0x0 build/main.o
@@ -510,14 +526,15 @@ LOAD build/ioqueue.o
  .bss           0x00000000c0008500       0x80 build/keyboard.o
                 0x00000000c0008500                kbd_buf
  .bss           0x00000000c0008580        0x0 build/ioqueue.o
+ .bss           0x00000000c0008580       0x6c build/tss.o
  *(COMMON)
-                0x00000000c0008580                . = ALIGN ((. != 0x0)?0x4:0x1)
-                0x00000000c0008580                . = ALIGN (0x4)
-                0x00000000c0008580                . = SEGMENT_START ("ldata-segment", .)
-                0x00000000c0008580                . = ALIGN (0x4)
-                0x00000000c0008580                _end = .
+                0x00000000c00085ec                . = ALIGN ((. != 0x0)?0x4:0x1)
+                0x00000000c00085ec                . = ALIGN (0x4)
+                0x00000000c00085ec                . = SEGMENT_START ("ldata-segment", .)
+                0x00000000c00085ec                . = ALIGN (0x4)
+                0x00000000c00085ec                _end = .
                 [!provide]                        PROVIDE (end = .)
-                0x00000000c0008580                . = DATA_SEGMENT_END (.)
+                0x00000000c00085ec                . = DATA_SEGMENT_END (.)
 
 .stab
  *(.stab)
@@ -554,6 +571,7 @@ LOAD build/ioqueue.o
  .comment       0x000000000000002b       0x2c build/sync.o
  .comment       0x000000000000002b       0x2c build/keyboard.o
  .comment       0x000000000000002b       0x2c build/ioqueue.o
+ .comment       0x000000000000002b       0x2c build/tss.o
 
 .gnu.build.attributes
  *(.gnu.build.attributes .gnu.build.attributes.*)
