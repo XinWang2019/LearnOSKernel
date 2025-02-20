@@ -2,7 +2,9 @@
 #define __KERNEL_GLOBAL_H__
 #include "stdint.h"
 
-#define NULL 0
+#define NULL ((void*)0)
+#define PG_SIZE 4096
+#define DIV_ROUND_UP(X, STEP) ((X + STEP - 1) / (STEP))
 
 #define RPL0 0
 #define RPL1 1
@@ -77,4 +79,11 @@ struct gdt_desc {
 #define bool int
 #define true 1
 #define false 0
+
+#define EFLAGS_MBS    (1 << 1) // 此项必须要设置
+#define EFLAGS_IF_1   (1 << 9) // if为1，开中断
+#define EFLAGS_IF_0   0        // if为0，关中断
+#define EFLAGS_IOPL_3 (3 << 12)// IOPL3，用于测试用户程序在非系统调用下进行IO
+#define EFLAGS_IOPL_0 (0 << 12)// IOPL0
+
 #endif
